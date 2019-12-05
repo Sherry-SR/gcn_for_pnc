@@ -6,7 +6,7 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from utils.data_handler import get_data_loaders
-from utils.helper import get_logger, get_number_of_learnable_parameters
+from utils.helper import get_logger, get_number_of_learnable_parameters, weights_init
 from utils.config import load_config
 from utils.trainer import Trainer
 
@@ -113,6 +113,9 @@ def main():
     # put the model on GPUs
     logger.info(f"Sending the model to '{config['device']}', using {torch.cuda.device_count()} GPUs...")
     model = model.to(config['device'])
+    # weights initialization
+    model.apply(weights_init)
+
     # Log the number of learnable parameters
     logger.info(f'Number of learnable params {get_number_of_learnable_parameters(model)}')
 
@@ -136,6 +139,7 @@ def main():
                               logger=logger)
     # Start training
     trainer.fit()
+    print('best evaluation score is:', trainer.best_eval_score)
 
 
 if __name__ == '__main__':

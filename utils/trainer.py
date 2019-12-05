@@ -10,6 +10,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.data import Data
 
 from utils.helper import RunningAverage, save_checkpoint, load_checkpoint, get_logger
+from utils.visualize import VisdomLinePlotter
 
 class Trainer:
     """Network trainer
@@ -50,6 +51,7 @@ class Trainer:
             self.logger = get_logger('Trainer', level=logging.DEBUG)
         else:
             self.logger = logger
+        self.plotter = VisdomLinePlotter('gcn')
 
         self.logger.info(model)
         self.model = model
@@ -156,7 +158,7 @@ class Trainer:
         if self.validate_after_iters is None:
             self.validate_after_iters = len(train_loader)
         if self.log_after_iters is None:
-            self.log_after_iters = 1
+            self.log_after_iters = self.validate_after_iters
         if self.max_num_iterations is None:
             self.max_num_iterations = self.max_num_epochs * len(train_loader)
 
@@ -185,6 +187,8 @@ class Trainer:
                 self.logger.info(
                     f'Training stats. Loss: {train_losses.avg}. Evaluation score: {train_eval_scores.avg}')
                 self._log_stats('train', train_losses.avg, train_eval_scores.avg)
+                self.plotter.plot('loss', 'train', 'loss', self.num_iterations, train_losses.avg, xlabel='Iter')
+                self.plotter.plot('accuracy', 'train', 'accuracy', self.num_iterations, train_eval_scores.avg, xlabel='Iter')
 
                 train_losses = RunningAverage()
                 train_eval_scores = RunningAverage()
@@ -248,6 +252,9 @@ class Trainer:
 
                 self._log_stats('val', val_losses.avg, val_scores.avg)
                 self.logger.info(f'Validation finished. Loss: {val_losses.avg}. Evaluation score: {val_scores.avg}')
+                self.plotter.plot('loss', 'val', 'loss', self.num_iterations, val_losses.avg, xlabel='Iter')
+                self.plotter.plot('accuracy', 'val', 'accuracy', self.num_iterations, val_scores.avg, xlabel='Iter')
+
                 return val_scores.avg
         finally:
             # set back in training mode

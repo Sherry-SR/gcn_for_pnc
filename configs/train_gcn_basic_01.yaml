@@ -33,7 +33,7 @@ optimizer:
   # initial learning rate
   learning_rate: 0.001
   # weight decay
-  weight_decay: 0.00001
+  weight_decay: 0.0001
 # loss function configuration
 loss:
   # loss function to be used during training
@@ -43,9 +43,9 @@ eval_metric:
   # evaluation metric to be used during training
   name: Accuracy
 lr_scheduler:
-  name: MultiStepLR
-  milestones: [100, 300, 600]
-  gamma: 0.2
+  name: StepLR
+  step_size: 500
+  gamma: 0.1
 # data loaders configuration
 loaders:
   # name of the dataset
@@ -69,4 +69,4 @@ loaders:
   # index of features to keep
   feature_mask: null
   # batch size in training process
-  batch_size: 64
+  batch_size: 32

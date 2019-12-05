@@ -95,7 +95,7 @@ class PNCEnrichedSet(InMemoryDataset):
         for subj in subjlist:
             print('downloading', subj, '...')
             filepath = os.path.join(path_data, subj, 'fdt_network_matrix')
-            matrix = torch.tensor(np.loadtxt(filepath), dtype=torch.float)
+            matrix = torch.tensor(np.triu(np.loadtxt(filepath)), dtype=torch.float)
             edge_index, value = dense_to_sparse(matrix)
             y = {'ScanAgeYears': labels[0][subj], 'Sex': labels[1][subj]}
             x = torch.ones([matrix.shape[0], 1], dtype=torch.float)
