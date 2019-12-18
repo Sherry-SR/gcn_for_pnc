@@ -37,7 +37,7 @@ def train_val_test_split(path, output, train_ratio, val_ratio, test_ratio):
     np.savetxt(os.path.join(output,'test_list.txt'), test_list, fmt='%s', delimiter='\n')
     print('filelist saved to:', output)
 
-#train_val_test_split('/home/sherry/Dropbox/PhD/Data/ABIDE/abide_qc.txt', '/home/sherry/Dropbox/PhD/Data/ABIDE/abide_exp01', 0.7, 0.2, 0.1)
+#train_val_test_split('/home/sherry/Dropbox/PhD/Data/PNC_Enriched/Schaefer/Redo', '/home/sherry/Dropbox/PhD/Data/PNC_Enriched/pnc_schaefer_exp01', 0.7, 0.2, 0.1)
 
 def cross_validation_split(path, output, num_fold, sel_fold = 0, shuffle = True):
     if os.path.splitext(path)[1] == '.txt':
@@ -222,12 +222,14 @@ class PNCEnrichedSet(InMemoryDataset):
         labels = itemgetter('ScanAgeYears','Sex')(labels.set_index('Subject').to_dict())
         
         subjlist = os.listdir(path_data)
-        #filelist = [fname for fname in os.listdir(os.path.join(path_data, subjlist[0])) if 'matrix' in fname]
+        filelist = [fname for fname in os.listdir(os.path.join(path_data, subjlist[0])) if '100' in fname]
+        '''
         filelist = ['fdt_network_matrix', 'fdt_network_matrix_lengths',
                     'Enriched_mean_matrix_0', 'Enriched_variance_matrix_0',
                     'Enriched_mean_matrix_1', 'Enriched_variance_matrix_1',
                     'Enriched_mean_matrix_2', 'Enriched_variance_matrix_2',
                     'Enriched_mean_matrix_3', 'Enriched_variance_matrix_3']
+        '''
 
         with open(os.path.join(self.raw_dir, 'pnc_enriched_raw_info.txt'), 'w') as f:
             print('Label info:', file = f)

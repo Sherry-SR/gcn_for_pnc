@@ -13,7 +13,7 @@ from utils.trainer import Trainer
 from models.gcn.losses import get_loss_criterion
 from models.gcn.metrics import get_evaluation_metric
 
-CONFIG_PATH = "./configs/train_gcn_basic_01.yaml"
+CONFIG_PATH = "./configs/train_gcn_basic_02.yaml"
 
 def _create_trainer(config, model, optimizer, lr_scheduler, loss_criterion, eval_criterion, loaders, logger):
     assert 'trainer' in config, 'Could not find trainer configuration'

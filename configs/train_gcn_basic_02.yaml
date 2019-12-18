@@ -1,0 +1,76 @@
+# Set a fixed random seed for reproducibility, or null
+manual_seed: null
+# model configuration
+model:
+  # model class
+  name: GcnNet
+  # number of input channels to the model
+  in_channels: 1
+  # number of output classes
+  out_channels: 2
+  # number of nodes
+  num_nodes: 100
+# trainer configuration
+trainer:
+  # path to the checkpoint directory
+  checkpoint_dir: /home/sherry/Dropbox/PhD/gcn/checkpoints
+  # path to latest checkpoint or null; if provided the training will be resumed
+  resume: null
+  # how many iterations between validations, null if validate every epoch
+  validate_after_iters: null
+  # how many iterations between tensorboard logging
+  log_after_iters: null
+  # how many iterations evaluated in validations, set null for evaluating whole val set
+  validate_iters: null
+  # max number of epochs
+  epochs: 500
+  # max number of iterations, set null for finishing all epochs
+  iters: null
+  # model with higher eval score is considered better
+  eval_score_higher_is_better: True
+# optimizer configuration
+optimizer:
+  # initial learning rate
+  learning_rate: 0.001
+  # weight decay
+  weight_decay: 0.0005
+# loss function configuration
+loss:
+  # loss function to be used during training
+  name: CrossEntropyLoss
+# evaluation metric configuration
+eval_metric:
+  # evaluation metric to be used during training
+  name: Accuracy
+lr_scheduler:
+  name: MultiStepLR
+  milestones: [50, 100, 300, 400]
+  gamma: 0.1
+# data loaders configuration
+loaders:
+  # name of the dataset
+  name: PNCEnrichedSet
+  # root path to save the created dataset
+  root: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/pnc_schaefer_exp01
+  # paths to the training list file
+  train_list: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/pnc_schaefer_exp01/train_list.txt
+  # output filename for training dataset
+  output_train: train_exp01.pkl
+  # paths to the validation list file
+  val_list: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/pnc_schaefer_exp01/val_list.txt
+  # output filename for validation dataset
+  output_val: val_exp01.pkl
+  # paths to the test list file
+  test_list: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/pnc_schaefer_exp01/test_list.txt
+  # output filename for test dataset
+  output_test: test_exp01.pkl
+  # path to origianl data folder
+  path_data: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/Schaefer/Redo
+  # path to origianl label file
+  path_label: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/Enriched_Connectomes_GO1_n968_LTN_dtiQApass_t1QApass_fsQApass.xlsx
+  # prediction target name
+  target_name: Sex
+  # index of features to keep
+  feature_mask: null
+  # batch size in training process
+  batch_size: 64
