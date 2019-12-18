@@ -16,6 +16,7 @@ class Accuracy:
     def __init__(self, **kwargs):
         pass
     def __call__(self, inputs, targets):
+        inputs = F.softmax(inputs)
         labels = torch.argmax(inputs, dim = 1)
         accuracy = torch.mean((labels == targets).to(torch.double)).detach().cpu()
         return accuracy

@@ -9,6 +9,7 @@ import scipy.sparse as sparse
 import numpy as np
 import torch
 import torch_geometric.nn as gnn
+from torch_geometric.data import Data
 import torch.nn.init as init
 
 def save_checkpoint(state, is_best, checkpoint_dir, logger=None):
@@ -31,7 +32,7 @@ def save_checkpoint(state, is_best, checkpoint_dir, logger=None):
         os.mkdir(checkpoint_dir)
 
     #last_file_path = os.path.join(checkpoint_dir, 'last_checkpoint_iter'+str(state['num_iterations'])+'.pytorch')
-    last_file_path = os.path.join(checkpoint_dir, 'last_checkpoint_iter.pytorch')
+    last_file_path = os.path.join(checkpoint_dir, 'last_checkpoint.pytorch')
     log_info(f"Saving last checkpoint to '{last_file_path}'")
     torch.save(state, last_file_path)
     if is_best:
@@ -97,6 +98,14 @@ def weights_init(m):
     if isinstance(m, torch.nn.Linear):
         init.xavier_normal_(m.weight.data)
         init.normal_(m.bias.data)
+
+def get_batch_size(input):
+    if isinstance(input, list) or isinstance(input, tuple):
+        return input[0].size(0)
+    if isinstance(input, Data):
+        return input.num_graphs
+    else:
+        return input.size(0)
 
 class RunningAverage:
     """Computes and stores the average
