@@ -95,6 +95,12 @@ def weights_init(m):
     if isinstance(m, gnn.GCNConv):
         init.xavier_normal_(m.weight.data)
         init.constant_(m.bias.data, 0)
+    if isinstance(m, gnn.GraphConv):
+        init.xavier_normal_(m.weight.data)
+    if isinstance(m, gnn.GATConv):
+        init.xavier_normal_(m.weight.data)
+        init.xavier_normal_(m.att.data)
+        init.constant_(m.bias.data, 0)
     if isinstance(m, torch.nn.Linear):
         init.xavier_normal_(m.weight.data)
         init.normal_(m.bias.data)

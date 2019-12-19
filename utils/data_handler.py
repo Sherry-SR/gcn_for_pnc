@@ -222,7 +222,7 @@ class PNCEnrichedSet(InMemoryDataset):
         labels = itemgetter('ScanAgeYears','Sex')(labels.set_index('Subject').to_dict())
         
         subjlist = os.listdir(path_data)
-        filelist = [fname for fname in os.listdir(os.path.join(path_data, subjlist[0])) if '100' in fname]
+        filelist = [fname for fname in os.listdir(os.path.join(path_data, subjlist[0])) if 'matrix' in fname]
         '''
         filelist = ['fdt_network_matrix', 'fdt_network_matrix_lengths',
                     'Enriched_mean_matrix_0', 'Enriched_variance_matrix_0',
