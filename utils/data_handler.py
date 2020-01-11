@@ -5,15 +5,17 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import coo_matrix
 
-import itertools
 from operator import itemgetter
-from openpyxl import load_workbook
 import pickle
 from shutil import copyfile
 
 import torch
 from torch_geometric.utils import dense_to_sparse
-from torch_geometric.data import Data, InMemoryDataset, DataLoader
+from torch_geometric.data import Data, InMemoryDataset
+
+from nilearn.connectome import ConnectivityMeasure
+
+from utils.helper import read_xlsx
 
 def train_val_test_split(path, output, train_ratio, val_ratio, test_ratio):
     if os.path.splitext(path)[1] == '.txt':
@@ -28,8 +30,8 @@ def train_val_test_split(path, output, train_ratio, val_ratio, test_ratio):
     test_ratio = test_ratio / sum_ratio
 
     train_list = filelist[0:int(len(filelist) * train_ratio)]
-    val_list = filelist[int(len(filelist) * train_ratio):-int(len(filelist) * test_ratio)]
-    test_list = filelist[-int(len(filelist) * test_ratio):]
+    val_list = filelist[int(len(filelist) * train_ratio):int(len(filelist) * (train_ratio + val_ratio))]
+    test_list = filelist[int(len(filelist) * (train_ratio + val_ratio)):]
 
     print('train:', len(train_list), 'val:', len(val_list), 'test:', len(test_list))
     np.savetxt(os.path.join(output,'train_list.txt'), train_list, fmt='%s', delimiter='\n')
@@ -37,7 +39,7 @@ def train_val_test_split(path, output, train_ratio, val_ratio, test_ratio):
     np.savetxt(os.path.join(output,'test_list.txt'), test_list, fmt='%s', delimiter='\n')
     print('filelist saved to:', output)
 
-#train_val_test_split('/home/sherry/Dropbox/PhD/Data/PNC_Enriched/Schaefer/Redo', '/home/sherry/Dropbox/PhD/Data/PNC_Enriched/pnc_schaefer_exp01', 0.7, 0.2, 0.1)
+#train_val_test_split('/home/sherry/Dropbox/PhD/Data/PNC_Enriched/Schaefer/Origin', '/home/sherry/Dropbox/PhD/Data/PNC_Enriched/pnc_schaefer_exp01', 0.7, 0.2, 0.1)
 
 def cross_validation_split(path, output, num_fold, sel_fold = 0, shuffle = True):
     if os.path.splitext(path)[1] == '.txt':
@@ -61,31 +63,38 @@ def cross_validation_split(path, output, num_fold, sel_fold = 0, shuffle = True)
     np.savetxt(os.path.join(output,'test_list.txt'), test_list, fmt='%s', delimiter='\n')
     print('filelist saved to:', output)
 
-#cross_validation_split('/home/sherry/Dropbox/PhD/Data/ABIDE/abide_exp01/all_list_shuffled.txt', '/home/sherry/Dropbox/PhD/Data/ABIDE/abide_exp01', 10, 9, False)
+#cross_validation_split('/home/sherry/Dropbox/PhD/Results/pnc_strucfunc_exp01/train_all.txt', '/home/sherry/Dropbox/PhD/Results/pnc_strucfunc_exp01', 10, 0, False)
 
 def arrange_data(path, output):
     subpaths = [f.path for f in os.scandir(path) if f.is_dir()]
     for subpath in subpaths:
-        filelist = os.listdir(subpath)
-        for filename in filelist:
-            subj, ext = os.path.splitext(filename)
+        subjlist = os.listdir(subpath)
+        for subj in subjlist:
+            if subj == 'exclude' or os.path.isfile(os.path.join(subpath, subj)):
+                continue
             out_subpath = os.path.join(output, subj)
             if not os.path.exists(out_subpath):
-                os.mkdir(out_subpath)
-            out_filename = os.path.basename(path)+'_'+os.path.basename(subpath)+'_matrix'+ext
-            copyfile(os.path.join(subpath, filename), os.path.join(out_subpath, out_filename))
+                os.makedirs(out_subpath)
+            filelist = os.listdir(os.path.join(subpath, subj))
+            id = subj.split('_')[1]
+            for filename in filelist:
+                out_filename = os.path.basename(subpath)+ '_' +filename.split(id+'_')[-1]
+                copyfile(os.path.join(subpath, subj, filename), os.path.join(out_subpath, out_filename))
+    print('done!')
+    return
 
-#arrange_data('/home/sherry/Dropbox/PhD/Data/ABIDE/raw_data/dos160', '/home/sherry/Dropbox/PhD/Data/ABIDE/ABIDE_Connectomes')
+#arrange_data('/home/sherry/Dropbox/PhD/Data/PNC_Enriched/ForSherry', '/home/sherry/Dropbox/PhD/Data/PNC_Enriched/PNC_Connectomes')
 
-def read_xlsx(path):
-    workbook = load_workbook(path)
-    sheet = workbook[workbook.sheetnames[0]]
-    data = sheet.values
-    cols = next(data)[0:]
-    data = list(data)
-    data = (itertools.islice(r, 0, None) for r in data)
-    df = pd.DataFrame(data, columns = cols)
-    return df
+def rename_data(path):
+    subjlist = [fname for fname in os.listdir(path) if os.path.isdir(os.path.join(path, fname)) and fname != 'exclude']
+    for subj in subjlist:
+        filelist = [fname for fname in os.listdir(os.path.join(path, subj)) if 'Restbold' in fname]
+        for filename in filelist:
+            newname = filename.replace('_Schaefer2018_','_')
+            newname = newname.replace('Parcels_LPS_dil2_', '_')
+            os.rename(os.path.join(path, subj,filename), os.path.join(path, subj, newname))
+    print('done!')
+#rename_data('/home/sherry/Dropbox/PhD/Data/PNC_Enriched/PNC_Connectomes')
 
 class ABIDESet(InMemoryDataset):
     def __init__(self, sub_list, output, root, path_data, path_label, target_name = None, feature_mask = None, **kwargs):
@@ -145,12 +154,12 @@ class ABIDESet(InMemoryDataset):
             for file in filelist:
                 filepath = os.path.join(path_data, subj, file)
                 # origianl value (-1 ~ 1), adjust value of the matrix to 0 ~ 2
-                matrix = torch.tensor(np.loadtxt(filepath), dtype=torch.float) + 1
+                matrix = torch.tensor(np.loadtxt(filepath), dtype=torch.float32) + 1
                 features.append(matrix)
             
             y = {'SITE_ID': labels[0][subj], 'DX_GROUP': labels[1][subj], 'DSM_IV_TR': labels[2][subj],
                     'AGE_AT_SCAN': labels[3][subj], 'SEX': labels[4][subj]}
-            x = torch.ones([matrix.shape[0], 1], dtype=torch.float)
+            x = torch.ones([matrix.shape[0], 1], dtype=torch.float32)
             data = Data(x = x, y = y)
             data.features = features           
             dataset[subj] = data
@@ -174,7 +183,7 @@ class ABIDESet(InMemoryDataset):
             if self.feature_mask is not None:
                 data.features = [data.features[i] for i in self.feature_mask]
 
-            edge_index, _ = dense_to_sparse(torch.ones(data.features[0].shape, dtype=torch.float))
+            edge_index, _ = dense_to_sparse(torch.ones(data.features[0].shape, dtype=torch.float32))
             edge_attr = []
             for feature in data.features:
                 edge_attr.append(feature[edge_index[0], edge_index[1]])
@@ -221,71 +230,82 @@ class PNCEnrichedSet(InMemoryDataset):
         labels['Sex'], uniques = pd.factorize(labels['Sex'])
         labels = itemgetter('ScanAgeYears','Sex')(labels.set_index('Subject').to_dict())
         
-        subjlist = os.listdir(path_data)
-        filelist = [fname for fname in os.listdir(os.path.join(path_data, subjlist[0])) if 'matrix' in fname]
-        '''
-        filelist = ['fdt_network_matrix', 'fdt_network_matrix_lengths',
-                    'Enriched_mean_matrix_0', 'Enriched_variance_matrix_0',
-                    'Enriched_mean_matrix_1', 'Enriched_variance_matrix_1',
-                    'Enriched_mean_matrix_2', 'Enriched_variance_matrix_2',
-                    'Enriched_mean_matrix_3', 'Enriched_variance_matrix_3']
-        '''
+        subjlist = [fname for fname in os.listdir(path_data) if os.path.isdir(os.path.join(path_data, fname)) and fname != 'exclude']
+        filelist = os.listdir(os.path.join(path_data, subjlist[0]))
+        filelist.sort()
+        ts_index = [i for i in range(len(filelist)) if 'timeseries' in filelist[i]]
 
+        min_ts_length = None
+        for subj in subjlist:
+            print('checking', subj, '...')
+            filename = filelist[ts_index[0]]
+            filepath = os.path.join(path_data, subj, filename)
+            if not os.path.exists(filepath):
+                continue
+            matrix = np.loadtxt(filepath)
+            if min_ts_length is None or matrix.shape[0] < min_ts_length:
+                min_ts_length = matrix.shape[0]
+    
         with open(os.path.join(self.raw_dir, 'pnc_enriched_raw_info.txt'), 'w') as f:
             print('Label info:', file = f)
             print('All labels:', 'ScanAgeYears','Sex')
             print('Sex labels (0/1):', uniques.values, file = f)
+            print('Timeseries length (min):', min_ts_length, file = f)
             print('\n', file = f)
-            print('Enriched features:', file = f)
+            print('Features:', file = f)
             print(filelist, sep='\n', file = f)
             print('\n', file = f)
             print('Saved subjects:', file = f)
             print(subjlist, sep='\n', file = f)
             print('\n', file = f)
 
-        dataset = {}
-        for subj in subjlist:
-            print('downloading', subj, '...')
-            features = []
-            for file in filelist:
-                filepath = os.path.join(path_data, subj, file)
-                matrix = torch.tensor(np.loadtxt(filepath), dtype=torch.float)
-                features.append(matrix)
-            y = {'ScanAgeYears': labels[0][subj], 'Sex': labels[1][subj]}
-            x = torch.ones([matrix.shape[0], 1], dtype=torch.float) 
-            data = Data(x = x, y = y)
-            data.features = features           
-            dataset[subj] = data
-    
         with open(os.path.join(self.raw_dir, 'pnc_features_raw.pkl'), 'wb') as f:
-            pickle.dump(dataset, f)
+            pickle.dump([labels, path_data, filelist, subjlist, min_ts_length], f)
             print('PNC dataset saved to path:', self.raw_dir)
         
     def process(self):
         with open(os.path.join(self.raw_dir, 'pnc_features_raw.pkl'), 'rb') as f:
-            dataset = pickle.load(f)
+            labels, path_data, filelist, _, min_ts_length = pickle.load(f)
+
+        if self.feature_mask is not None:
+            if np.isscalar(self.feature_mask):
+                self.feature_mask = [i for i in range(len(filelist)) if self.feature_mask == int(filelist[i].split('_')[1])]
+            filelist = [filelist[i] for i in self.feature_mask]
+        ts_index = [i for i in range(len(filelist)) if 'timeseries' in filelist[i]]
+        sc_index = [i for i in range(len(filelist)) if 'connmat' in filelist[i]]
 
         dataset_list = []
-        
         sub_list = np.loadtxt(self.sub_list, dtype = str, delimiter = '\n')
-
+        epsilon = 1e-5
         for subj in sub_list:
-            data = dataset[subj]
+            print('processing', subj, '...')
+            features = []
+            for filename in filelist:
+                filepath = os.path.join(path_data, subj, filename)
+                if not os.path.exists(filepath):
+                    raise ValueError('invalid path '+filepath)
+                matrix = np.loadtxt(filepath)
+                features.append(matrix)
+
+            data = Data(x = None, y = None)
+            data.y = {'ScanAgeYears': labels[0][subj], 'Sex': labels[1][subj]}
+            data.subj = int(subj.split('_')[0])
             if self.target_name is not None:
                 data.y = data.y[self.target_name]
-            if self.feature_mask is not None:
-                data.features = [data.features[i] for i in self.feature_mask]
-                
-            edge_index, _ = dense_to_sparse(torch.ones(data.features[0].shape, dtype=torch.float))
-            edge_attr = []
-            for feature in data.features:
-                edge_attr.append(feature[edge_index[0], edge_index[1]])
-            data.edge_index = edge_index
-            data.edge_attr = torch.stack(edge_attr, dim = -1)
-            data.features = torch.stack(data.features, dim = -1)
-            data.features = torch.unsqueeze(data.features, dim = 0)
+            ts = []
+            for i in ts_index:
+                ts.append(features[i][:min_ts_length, :])
+            data.fconn = torch.tensor(ConnectivityMeasure(kind='correlation').fit_transform(ts), dtype=torch.float32)
+            sc = []
+            for i in sc_index:
+                sc_matrix = features[i] + epsilon
+                sc.append(sc_matrix / np.sum(sc_matrix, axis = 0))
+            data.sconn = torch.tensor(sc, dtype=torch.float32)
+            data.x = data.fconn[0]
+            data.edge_index, _ = dense_to_sparse(torch.ones(data.sconn[0].shape, dtype=torch.float32))
+            data.edge_attr = data.sconn[0].clone().detach()[data.edge_index[0], data.edge_index[1]]
             dataset_list.append(data)
-            
+
         self.data, self.slices = self.collate(dataset_list)
         torch.save((self.data, self.slices), self.processed_paths[0])
         print('Processed dataset saved as', self.processed_paths[0])
@@ -298,6 +318,7 @@ def get_data_loaders(config):
     assert 'loaders' in config, 'Could not find loaders configuration'
     loaders_config = config['loaders']
     class_name = loaders_config.pop('name')
+    loader_class_name = loaders_config.pop('loader_name')
     train_list = loaders_config.pop('train_list')
     val_list = loaders_config.pop('val_list')
     test_list = loaders_config.pop('test_list')
@@ -308,9 +329,11 @@ def get_data_loaders(config):
 
     m = importlib.import_module('utils.data_handler')
     clazz = getattr(m, class_name)
+    m = importlib.import_module('torch_geometric.data')
+    loader_clazz =getattr(m, loader_class_name)
 
     return {
-        'train': DataLoader(clazz(train_list, output_train, **loaders_config), batch_size=batch_size, shuffle=True),
-        'val': DataLoader(clazz(val_list, output_val, **loaders_config), batch_size=batch_size, shuffle=True),
-        'test': DataLoader(clazz(test_list, output_test, **loaders_config), batch_size=batch_size, shuffle=True)
+        'train': loader_clazz(clazz(train_list, output_train, **loaders_config), batch_size=batch_size, shuffle=True),
+        'val': loader_clazz(clazz(val_list, output_val, **loaders_config), batch_size=batch_size, shuffle=True),
+        'test': loader_clazz(clazz(test_list, output_test, **loaders_config), batch_size=batch_size, shuffle=True)
         }

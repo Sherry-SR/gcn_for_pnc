@@ -3,17 +3,17 @@ manual_seed: null
 # model configuration
 model:
   # model class
-  name: GcnNet
+  name: GatNet_SF
   # number of input channels to the model
-  in_channels: 1
+  in_channels: 100
   # number of output classes
-  out_channels: 2
+  out_channels: 1
   # number of nodes
-  num_nodes: 80
+  num_nodes: 100
 # trainer configuration
 trainer:
   # path to the checkpoint directory
-  checkpoint_dir: /home/sherry/Dropbox/PhD/gcn/checkpoints
+  checkpoint_dir: /home/sherry/Dropbox/PhD/gcn_for_pnc/checkpoints
   # path to latest checkpoint or null; if provided the training will be resumed
   resume: null
   # how many iterations between validations, null if validate every epoch
@@ -27,50 +27,52 @@ trainer:
   # max number of iterations, set null for finishing all epochs
   iters: null
   # model with higher eval score is considered better
-  eval_score_higher_is_better: True
+  eval_score_higher_is_better: False
 # optimizer configuration
 optimizer:
   # initial learning rate
   learning_rate: 0.001
   # weight decay
-  weight_decay: 0.001
+  weight_decay: 0.0001
 # loss function configuration
 loss:
   # loss function to be used during training
-  name: CrossEntropyLoss
+  name: MSELoss
 # evaluation metric configuration
 eval_metric:
   # evaluation metric to be used during training
-  name: Accuracy
+  name: MSELoss
 lr_scheduler:
-  name: StepLR
-  step_size: 200
+  name: MultiStepLR
+  milestones: [50, 100, 300]
   gamma: 0.1
 # data loaders configuration
 loaders:
   # name of the dataset
   name: PNCEnrichedSet
+  # class name of the dataloader
+  loader_name: DataLoader
   # root path to save the created dataset
-  root: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/pnc_enriched_exp01
+  root: /home/sherry/Dropbox/PhD/Results/pnc_strucfunc_exp01
   # paths to the training list file
-  train_list: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/pnc_enriched_exp01/train_list.txt
+  train_list: /home/sherry/Dropbox/PhD/Results/pnc_strucfunc_exp01/train_list.txt
   # output filename for training dataset
   output_train: train_exp01.pkl
   # paths to the validation list file
-  val_list: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/pnc_enriched_exp01/val_list.txt
+  val_list: /home/sherry/Dropbox/PhD/Results/pnc_strucfunc_exp01/val_list.txt
   # output filename for validation dataset
   output_val: val_exp01.pkl
   # paths to the test list file
-  test_list: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/pnc_enriched_exp01/test_list.txt
+  test_list: /home/sherry/Dropbox/PhD/Results/pnc_strucfunc_exp01/test_all.txt
   # output filename for test dataset
   output_test: test_exp01.pkl
   # path to origianl data folder
-  path_data: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/Enriched_Connectomes
+  path_data: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/PNC_Connectomes
   # path to origianl label file
-  path_label: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/Enriched_Connectomes_GO1_n968_LTN_dtiQApass_t1QApass_fsQApass.xlsx
+  path_label: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/PNC_Connectomes_GO1_n968_LTN_dtiQApass_t1QApass_fsQApass.xlsx
   # prediction target name
-  target_name: Sex
-  # index of features to keep
-  feature_mask: null
+  target_name: ScanAgeYears
+  # index of features to keep, or features with a certain number of node
+  feature_mask: 100
   # batch size in training process
   batch_size: 64

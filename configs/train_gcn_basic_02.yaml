@@ -3,17 +3,17 @@ manual_seed: null
 # model configuration
 model:
   # model class
-  name: GcnNet
+  name: GcnNet2Channel
   # number of input channels to the model
   in_channels: 1
   # number of output classes
   out_channels: 2
   # number of nodes
-  num_nodes: 100
+  num_nodes: [100, 200]
 # trainer configuration
 trainer:
   # path to the checkpoint directory
-  checkpoint_dir: /home/sherry/Dropbox/PhD/gcn/checkpoints
+  checkpoint_dir: /home/sherry/Dropbox/PhD/gcn_for_pcn/checkpoints
   # path to latest checkpoint or null; if provided the training will be resumed
   resume: null
   # how many iterations between validations, null if validate every epoch
@@ -33,11 +33,11 @@ optimizer:
   # initial learning rate
   learning_rate: 0.001
   # weight decay
-  weight_decay: 0.0005
+  weight_decay: 0.0001
 # loss function configuration
 loss:
   # loss function to be used during training
-  name: CrossEntropyLoss
+  name: Me
 # evaluation metric configuration
 eval_metric:
   # evaluation metric to be used during training
@@ -50,6 +50,8 @@ lr_scheduler:
 loaders:
   # name of the dataset
   name: PNCEnrichedSet
+  # class name of the dataloader
+  loader_name: DataLoader
   # root path to save the created dataset
   root: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/pnc_schaefer_exp01
   # paths to the training list file
@@ -65,12 +67,12 @@ loaders:
   # output filename for test dataset
   output_test: test_exp01.pkl
   # path to origianl data folder
-  path_data: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/Schaefer/Redo
+  path_data: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/Schaefer/Origin
   # path to origianl label file
-  path_label: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/Enriched_Connectomes_GO1_n968_LTN_dtiQApass_t1QApass_fsQApass.xlsx
+  path_label: /home/sherry/Dropbox/PhD/Data/PNC_Enriched/PNC_Connectomes_GO1_n968_LTN_dtiQApass_t1QApass_fsQApass.xlsx
   # prediction target name
   target_name: Sex
   # index of features to keep
   feature_mask: null
   # batch size in training process
-  batch_size: 64
+  batch_size: 32

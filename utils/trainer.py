@@ -167,7 +167,7 @@ class Trainer:
         for i, t in enumerate(train_loader):
             target = t.y.to(self.device)
             input = t.to(self.device)
-            output, h = self.model(input)
+            output = self.model(input)
 
             # compute loss criterion
             loss = self.loss_criterion(output, target)
@@ -214,7 +214,7 @@ class Trainer:
                 if self.inference_config is not None:
                     if (self.num_iterations >= self.inference_config['infer_init_iters'] and
                         self.num_iterations % self.inference_config['infer_after_iters'] == 0):
-                        self.inference(self.loaders, h)
+                        self.inference(self.loaders)
 
             if self.num_iterations >= self.max_num_iterations:
                 self.logger.info(
@@ -247,7 +247,7 @@ class Trainer:
 
                     target = t.y.to(self.device)
                     input = t.to(self.device)
-                    output, _ = self.model(input)
+                    output = self.model(input)
 
                     # compute loss criterion
                     loss = self.loss_criterion(output, target)
@@ -267,7 +267,7 @@ class Trainer:
             # set back in training mode
             self.model.train()
         
-    def inference(self, loaders, h):
+    def inference(self, loaders):
         self.logger.info(f'Infering hidden data... ')
         return
     

@@ -12,6 +12,10 @@ import torch_geometric.nn as gnn
 from torch_geometric.data import Data
 import torch.nn.init as init
 
+import itertools
+from openpyxl import load_workbook
+import pandas as pd
+
 def save_checkpoint(state, is_best, checkpoint_dir, logger=None):
     """Saves model and training parameters at '{checkpoint_dir}/last_checkpoint.pytorch'.
     If is_best==True saves '{checkpoint_dir}/best_checkpoint.pytorch' as well.
@@ -112,6 +116,16 @@ def get_batch_size(input):
         return input.num_graphs
     else:
         return input.size(0)
+
+def read_xlsx(path):
+    workbook = load_workbook(path)
+    sheet = workbook[workbook.sheetnames[0]]
+    data = sheet.values
+    cols = next(data)[0:]
+    data = list(data)
+    data = (itertools.islice(r, 0, None) for r in data)
+    df = pd.DataFrame(data, columns = cols)
+    return df
 
 class RunningAverage:
     """Computes and stores the average

@@ -13,7 +13,7 @@ from models.gcn.losses import get_loss_criterion
 from models.gcn.metrics import get_evaluation_metric
 
 CONFIG_PATH = "./configs/train_gcn_basic_01.yaml"
-MODEL_PATH = "/home/sherry/Dropbox/PhD/dl_graph_connectomes/checkpoints/best_checkpoint.pytorch"
+MODEL_PATH = "/home/sherry/Dropbox/PhD/gcn_for_pnc/checkpoints/best_checkpoint.pytorch"
 
 def validate(model, val_loader, loss_criterion, eval_criterion, device):
 
@@ -25,11 +25,15 @@ def validate(model, val_loader, loss_criterion, eval_criterion, device):
     model.eval()
     with torch.no_grad():
         for _ in tqdm(range(len(val_loader))):
-            t = next(val_iterator)
+            try:
+                t = next(val_iterator)
+            except StopIteration:
+                val_iterator = iter(val_loader)
+                t = next(val_iterator)
 
             target = t.y.to(device)
             input = t.to(device)
-            output, _ = model(input)
+            output = model(input)
 
             # compute loss criterion
             loss = loss_criterion(output, target)
